@@ -1,4 +1,4 @@
-main.o: /Users/mari/Desktop/template/source/main.c \
+main.o: /Users/mari/Desktop/Homebrew./source/main.c \
  /opt/devkitpro/portlibs/wii/include/grrlib.h \
  /opt/devkitpro/libogc/include/gccore.h \
  /opt/devkitpro/libogc/include/ogc/dsp.h \

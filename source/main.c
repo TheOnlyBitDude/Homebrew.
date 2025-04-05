@@ -68,13 +68,13 @@ int main(int argc, char **argv) {
 
     float rocketX[4] = {0, 0, 0, 0};
     float rocketY[4] = {0, 24, 48, 70};
-    float rocketSpeedX[4] = {0, 0, 0, 0};
+    float rocketSpeedX[4] = {16, 16, 16, 16};
 
     while(1) 
     {
         x = WPAD_Data(0)->ir.x; // Scan X position of the pointer.
         y = WPAD_Data(0)->ir.y; // Scan Y position of the pointer.
-        angle = WPAD_Data(0)->ir.angle;
+        angle = WPAD_Data(0)->ir.angle; // Scan the angle of the Wiimote.
     
 
         WPAD_ScanPads();  // Scan the Wiimotes.
