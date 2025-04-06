@@ -170,18 +170,15 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *background, *cursor, *art_cursor, *Rocket1, *Rocket2, *Rocket3, *Rocket4;
 
     float x, y, angle, cur_X, cur_Y, cur_XSpeed, cur_YSpeed, rocketX[4], rocketY[4], rocketSpeedX[4];
+
     int shouldExit = 0;
 
     // Initialize everything
     init(&background, &cursor, &art_cursor, &Rocket1, &Rocket2, &Rocket3, &Rocket4, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, rocketX, rocketY, rocketSpeedX);
-
     while(1) 
     {
-
         handleInput(&x, &y, &angle, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, &shouldExit);
-
         rockets(cur_X, cur_Y, rocketX, rocketY, rocketSpeedX);
-
         render(x, y, angle, cur_X, cur_Y, rocketX, rocketY, background, cursor, art_cursor, Rocket1, Rocket2, Rocket3, Rocket4);
         GRRLIB_Render(); // Render the frame buffer to the TV.
     }
