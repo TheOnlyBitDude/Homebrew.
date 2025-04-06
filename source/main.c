@@ -20,6 +20,113 @@
 #include <wiiuse/wpad.h>
 
 
+void init(GRRLIB_texImg **background, GRRLIB_texImg **cursor, GRRLIB_texImg **art_cursor, GRRLIB_texImg **Rocket1, GRRLIB_texImg **Rocket2, GRRLIB_texImg **Rocket3, GRRLIB_texImg **Rocket4, float *cur_X, float *cur_Y, float *cur_XSpeed, float *cur_YSpeed, float rocketX[4], float rocketY[4], float rocketSpeedX[4]
+) {
+    // Initialise the Graphics & Video subsystem.
+    GRRLIB_Init();
+
+    // Initialise the Wiimotes.
+    WPAD_Init();
+
+    // Setup Wiimote IR resolution
+    WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
+    WPAD_SetVRes(WPAD_CHAN_ALL, rmode->fbWidth, rmode->xfbHeight);
+
+    // Seed the RNG
+    u32 seed = ticks_to_millisecs(gettick());
+    srand(seed);
+
+    // Load images
+    *background = GRRLIB_LoadTextureFromFile("sd:/images/background.jpg");
+    *cursor = GRRLIB_LoadTextureFromFile("sd:/images/cursor.png");
+    *art_cursor = GRRLIB_LoadTextureFromFile("sd:/images/cursor.png");
+    *Rocket1 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket1.png");
+    *Rocket2 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket2.png");
+    *Rocket3 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket3.png");
+    *Rocket4 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket4.png");
+
+    // Cursor initial position and velocity
+    *cur_X = 240;
+    *cur_Y = 0;
+    *cur_XSpeed = 0;
+    *cur_YSpeed = 0;
+
+    // Rocket initial positions and speed
+    rocketX[0] = 0; rocketX[1] = 0; rocketX[2] = 0; rocketX[3] = 0;
+    rocketY[0] = 0; rocketY[1] = 24; rocketY[2] = 48; rocketY[3] = 70;
+    rocketSpeedX[0] = 16; rocketSpeedX[1] = 16; rocketSpeedX[2] = 16; rocketSpeedX[3] = 16;
+}
+
+
+
+void handleInput(float *x, float *y, float *angle, float *cur_X, float *cur_Y, float *cur_XSpeed, float *cur_YSpeed, int *shouldExit) {
+    WPAD_ScanPads();  // Scan the Wiimotes.
+
+    *x = WPAD_Data(0)->ir.x;
+    *y = WPAD_Data(0)->ir.y;
+    *angle = WPAD_Data(0)->ir.angle;
+
+    if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) {
+        *shouldExit = 1;
+        return;
+    }
+
+    // Gravity
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_2) {
+        *cur_YSpeed += 0.3f;
+        if (*cur_YSpeed >= 10) {
+            *cur_YSpeed = 10;
+        }
+    } else {
+        *cur_YSpeed -= 0.4f;
+        if (*cur_YSpeed <= -13) {
+            *cur_YSpeed = -13;
+        }
+    }
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP) {
+        *cur_XSpeed = 7;
+    }
+
+    if (WPAD_ButtonsUp(0) & (WPAD_BUTTON_UP | WPAD_BUTTON_DOWN)) {
+        if (*cur_XSpeed != 0) {
+            if (*cur_XSpeed > 0) {
+                *cur_XSpeed -= 1;
+            } else {
+                *cur_XSpeed += 1;
+            }
+        }
+    }
+
+    if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN) {
+        *cur_XSpeed = -7;
+    }
+
+    // Update position
+    *cur_X -= *cur_XSpeed;
+    *cur_Y -= *cur_YSpeed;
+
+    // Boundaries
+    if (*cur_X <= 0) {
+        *cur_XSpeed = 0;
+        *cur_X = 0;
+    }
+    if (*cur_X >= 816) {
+        *cur_XSpeed = 0;
+        *cur_X = 816;
+    }
+    if (*cur_Y <= 0) {
+        *cur_YSpeed = 0;
+        *cur_Y = 0;
+    }
+    if (*cur_Y >= 428) {
+        *cur_YSpeed = 0;
+        *cur_Y = 428;
+    }
+}
+
+
+
 // Function to check if two rectangles are colliding
 int checkCollision(float x1, float y1, int w1, int h1, float x2, float y2, int w2, int h2) {
     // Check if the rectangles overlap
@@ -27,136 +134,18 @@ int checkCollision(float x1, float y1, int w1, int h1, float x2, float y2, int w
 }
 
 int main(int argc, char **argv) {
-    // Initialise the Graphics & Video subsystem.
-    GRRLIB_Init();
+    // Declare variables
+    GRRLIB_texImg *background, *cursor, *art_cursor, *Rocket1, *Rocket2, *Rocket3, *Rocket4;
 
-    // Initialise the Wiimotes.
-    WPAD_Init();
+    float x, y, angle, cur_X, cur_Y, cur_XSpeed, cur_YSpeed, rocketX[4], rocketY[4], rocketSpeedX[4];
+    int shouldExit = 0;
 
-    // Loop forever.
-    WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
-    WPAD_SetVRes(WPAD_CHAN_ALL, rmode->fbWidth, rmode->xfbHeight);
-    
-    u32 seed = ticks_to_millisecs(gettick());
-    srand(seed);
-
-    // Create variable.
-    GRRLIB_texImg *background;
-    GRRLIB_texImg *cursor;
-    GRRLIB_texImg *art_cursor;
-    GRRLIB_texImg *Rocket1;
-    GRRLIB_texImg *Rocket2;
-    GRRLIB_texImg *Rocket3;
-    GRRLIB_texImg *Rocket4;
-    
-    // Load images.
-    background = GRRLIB_LoadTextureFromFile("sd:/images/background.jpg");
-    cursor = GRRLIB_LoadTextureFromFile("sd:/images/cursor.png");
-    art_cursor = GRRLIB_LoadTextureFromFile("sd:/images/cursor.png");
-    Rocket1 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket1.png");
-    Rocket2 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket2.png");
-    Rocket3 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket3.png");
-    Rocket4 = GRRLIB_LoadTextureFromFile("sd:/images/Rocket4.png");
-    
-    float x, y, angle; // Define position variables for the Wiimote cursor.
-
-    float cur_X, cur_Y, cur_XSpeed, cur_YSpeed; // Define artificial cursor position variables.
-    cur_X = 240;
-    cur_Y = 0;
-    cur_XSpeed = 0;
-    cur_YSpeed = 0;
-
-    float rocketX[4] = {0, 0, 0, 0};
-    float rocketY[4] = {0, 24, 48, 70};
-    float rocketSpeedX[4] = {16, 16, 16, 16};
-
+    // Initialize everything
+    init(&background, &cursor, &art_cursor, &Rocket1, &Rocket2, &Rocket3, &Rocket4, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, rocketX, rocketY, rocketSpeedX);
     while(1) 
     {
-        x = WPAD_Data(0)->ir.x; // Scan X position of the pointer.
-        y = WPAD_Data(0)->ir.y; // Scan Y position of the pointer.
-        angle = WPAD_Data(0)->ir.angle; // Scan the angle of the Wiimote.
-    
 
-        WPAD_ScanPads();  // Scan the Wiimotes.
-
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
-        {
-            break;
-        }
-
-        // Gravity.
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_2)
-        {
-            cur_YSpeed += 0.3;
-            if (cur_YSpeed >= 10)
-            {
-                cur_YSpeed = 10;
-            }
-        }
-
-        else
-        {   
-            cur_YSpeed -= 0.4;
-            if (cur_YSpeed <= -13)
-            {
-                cur_YSpeed = -13;
-            }
-        }
-
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_UP)
-        {
-            cur_XSpeed = 7;
-        }
-
-        if (WPAD_ButtonsUp(0) & WPAD_BUTTON_UP || WPAD_BUTTON_DOWN)
-        {
-            if (cur_XSpeed == 0)
-            {
-                cur_XSpeed = 0;
-            }
-            else
-            {
-                if (cur_XSpeed > 0)
-                {
-                    cur_XSpeed -= 1;
-                }
-                else
-                {
-                    cur_XSpeed += 1;
-                }
-            }
-            
-        }
-
-        if (WPAD_ButtonsHeld(0) & WPAD_BUTTON_DOWN)
-        {
-            cur_XSpeed = -7;
-        }
-
-        // Position change.
-        cur_X -= cur_XSpeed;
-        cur_Y -= cur_YSpeed;
-
-        // Out of bounds limit.
-        if (cur_X <= 0)
-        {
-            cur_XSpeed = 0;
-            cur_X = 0;
-        }
-        if (cur_X >= 816)
-        {
-            cur_XSpeed = 0;
-            cur_X = 816;
-        }
-        if (cur_Y <= 0)
-        {
-            cur_YSpeed = 0; cur_Y = 0;
-        }
-        if (cur_Y >= 428)
-        {
-            cur_YSpeed = 0;
-            cur_Y = 428;
-        }
+        handleInput(&x, &y, &angle, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, &shouldExit);
 
         for (int i = 0; i < 4; i++) {
             rocketX[i] -= rocketSpeedX[i]; // Move rockets horizontally
