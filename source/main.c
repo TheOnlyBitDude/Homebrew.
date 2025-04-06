@@ -20,8 +20,7 @@
 #include <wiiuse/wpad.h>
 
 
-void init(GRRLIB_texImg **background, GRRLIB_texImg **cursor, GRRLIB_texImg **art_cursor, GRRLIB_texImg **Rocket1, GRRLIB_texImg **Rocket2, GRRLIB_texImg **Rocket3, GRRLIB_texImg **Rocket4, float *cur_X, float *cur_Y, float *cur_XSpeed, float *cur_YSpeed, float rocketX[4], float rocketY[4], float rocketSpeedX[4]
-) {
+void init(GRRLIB_texImg **background, GRRLIB_texImg **cursor, GRRLIB_texImg **art_cursor, GRRLIB_texImg **Rocket1, GRRLIB_texImg **Rocket2, GRRLIB_texImg **Rocket3, GRRLIB_texImg **Rocket4, float *cur_X, float *cur_Y, float *cur_XSpeed, float *cur_YSpeed, float rocketX[4], float rocketY[4], float rocketSpeedX[4]) {
     // Initialise the Graphics & Video subsystem.
     GRRLIB_Init();
 
@@ -56,7 +55,6 @@ void init(GRRLIB_texImg **background, GRRLIB_texImg **cursor, GRRLIB_texImg **ar
     rocketY[0] = 0; rocketY[1] = 24; rocketY[2] = 48; rocketY[3] = 70;
     rocketSpeedX[0] = 16; rocketSpeedX[1] = 16; rocketSpeedX[2] = 16; rocketSpeedX[3] = 16;
 }
-
 
 
 void handleInput(float *x, float *y, float *angle, float *cur_X, float *cur_Y, float *cur_XSpeed, float *cur_YSpeed, int *shouldExit) {
@@ -126,12 +124,46 @@ void handleInput(float *x, float *y, float *angle, float *cur_X, float *cur_Y, f
 }
 
 
-
-// Function to check if two rectangles are colliding
 int checkCollision(float x1, float y1, int w1, int h1, float x2, float y2, int w2, int h2) {
     // Check if the rectangles overlap
     return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2);
 }
+
+
+void rockets(float cur_X, float cur_Y, float rocketX[4], float rocketY[4], float rocketSpeedX[4]) {
+    for (int i = 0; i < 4; i++) {
+        // Move rocket
+        rocketX[i] -= rocketSpeedX[i];
+
+        // Wrap rocket to the right side if it goes off the left edge
+        if (rocketX[i] < -64) {
+            rocketX[i] = 856;
+            rocketY[i] = rand() % 456;
+        }
+    }
+
+    // Check for collisions with the artificial cursor
+    for (int i = 0; i < 4; i++) {
+        if (checkCollision(cur_X, cur_Y, 36, 52, rocketX[i], rocketY[i], 64, 24)) {
+            GRRLIB_Exit();
+            exit(0);
+        }
+    }
+}
+
+
+void render(float x, float y, float angle, float cur_X, float cur_Y, float rocketX[4], float rocketY[4], GRRLIB_texImg *background, GRRLIB_texImg *cursor, GRRLIB_texImg *art_cursor, GRRLIB_texImg *Rocket1, GRRLIB_texImg *Rocket2, GRRLIB_texImg *Rocket3, GRRLIB_texImg *Rocket4) {
+    GRRLIB_DrawImg(0, 0, background, 0, 1, 1, RGBA(255, 255, 255, 255));
+    GRRLIB_DrawImg(x, y, cursor, angle * (180.0f / M_PI), 1, 1, RGBA(255, 255, 255, 255));
+    GRRLIB_DrawImg(cur_X, cur_Y, art_cursor, 0, 1, 1, RGBA(255, 255, 255, 255));
+
+    GRRLIB_DrawImg(rocketX[0], rocketY[0], Rocket1, 0, 1, 1, RGBA(255, 255, 255, 255));
+    GRRLIB_DrawImg(rocketX[1], rocketY[1], Rocket2, 0, 1, 1, RGBA(255, 255, 255, 255));
+    GRRLIB_DrawImg(rocketX[2], rocketY[2], Rocket3, 0, 1, 1, RGBA(255, 255, 255, 255));
+    GRRLIB_DrawImg(rocketX[3], rocketY[3], Rocket4, 0, 1, 1, RGBA(255, 255, 255, 255));
+}
+
+
 
 int main(int argc, char **argv) {
     // Declare variables
@@ -142,39 +174,16 @@ int main(int argc, char **argv) {
 
     // Initialize everything
     init(&background, &cursor, &art_cursor, &Rocket1, &Rocket2, &Rocket3, &Rocket4, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, rocketX, rocketY, rocketSpeedX);
+
     while(1) 
     {
 
         handleInput(&x, &y, &angle, &cur_X, &cur_Y, &cur_XSpeed, &cur_YSpeed, &shouldExit);
 
-        for (int i = 0; i < 4; i++) {
-            rocketX[i] -= rocketSpeedX[i]; // Move rockets horizontally
-            
-            // If a rocket moves off-screen make it wrap around
-            if (rocketX[i] < -64) {
-                rocketX[i] = 856;
+        rockets(cur_X, cur_Y, rocketX, rocketY, rocketSpeedX);
 
-                rocketY[i] = rand() % 456;
-            }
-        }
-
-        // Collision detection
-        for (int i = 0; i < 4; i++) {
-            if (checkCollision(cur_X, cur_Y, 36, 52, rocketX[i], rocketY[i], 64, 24)) {
-                // Collision detected, exit program
-                GRRLIB_Exit();
-                exit(0); // Exit the program if collision happens
-            }
-        }
-
-        GRRLIB_DrawImg(0, 0, background, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_DrawImg(x, y, cursor, angle * (180.0f / M_PI), 1, 1, RGBA(255,255,255,255));
-        GRRLIB_DrawImg(cur_X, cur_Y, art_cursor, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_DrawImg(rocketX[0], rocketY[0], Rocket1, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_DrawImg(rocketX[1], rocketY[1], Rocket2, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_DrawImg(rocketX[2], rocketY[2], Rocket3, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_DrawImg(rocketX[3], rocketY[3], Rocket4, 0, 1, 1, RGBA( 255, 255, 255, 255 ));
-        GRRLIB_Render();  // Render the frame buffer to the TV.
+        render(x, y, angle, cur_X, cur_Y, rocketX, rocketY, background, cursor, art_cursor, Rocket1, Rocket2, Rocket3, Rocket4);
+        GRRLIB_Render(); // Render the frame buffer to the TV.
     }
 
     GRRLIB_Exit(); // Clear allocated memory.
